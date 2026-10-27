@@ -595,7 +595,8 @@
                 if(item.status === 'นำไปใช้งานแล้ว') statusColor = "bg-emerald-100 text-emerald-700";
                 if(item.status === 'รอรับ/ยังไม่อัปเดต') statusColor = "bg-orange-100 text-orange-700";
 
-                let photoHTML = item.photo_url ? `<a href="${item.photo_url}" target="_blank" class="text-blue-500 hover:underline text-xs mt-1 block"><i class="fa-solid fa-image"></i> ดูภาพวัตถุดิบ</a>` : '';
+                let photoHTML = item.photo_url && !item.photo_url.includes("Error") ? `<a href="${item.photo_url}" target="_blank" class="text-blue-500 hover:underline text-xs mt-1 block"><i class="fa-solid fa-image"></i> ดูภาพวัตถุดิบ</a>` : '';
+                if(item.photo_url && item.photo_url.includes("Error")) photoHTML = `<span class="text-red-400 text-xs mt-1 block"><i class="fa-solid fa-triangle-exclamation"></i> บันทึกภาพไม่สำเร็จ</span>`;
 
                 listDiv.innerHTML += `
                     <div class="border border-gray-200 rounded-xl p-4 shadow-sm bg-white">
@@ -779,6 +780,9 @@
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = '';
             [...appData].reverse().forEach(d => {
+                
+                let photoHTML = d.photo_url && !d.photo_url.includes("Error") ? `<br><a href="${d.photo_url}" target="_blank" class="text-blue-500 hover:underline text-[10px]"><i class="fa-solid fa-image"></i> รูปภาพ</a>` : '';
+
                 tbody.innerHTML += `
                     <tr class="bg-white border-b hover:bg-gray-50">
                         <td class="px-4 py-2 whitespace-nowrap">${formatDateOnly(d.date)}</td>
@@ -787,7 +791,7 @@
                         <td class="px-4 py-2">${d.outlet}</td>
                         <td class="px-4 py-2">
                             ${d.status}
-                            ${d.photo_url ? `<br><a href="${d.photo_url}" target="_blank" class="text-blue-500 hover:underline text-[10px]"><i class="fa-solid fa-image"></i> รูปภาพ</a>` : ''}
+                            ${photoHTML}
                         </td>
                     </tr>
                 `;
