@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitchen to Green Space</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Prompt', sans-serif; background-color: #f3f4f6; }
+        .tab-active { border-bottom: 4px solid #10b981; color: #10b981; font-weight: 600; }
+        .hidden { display: none !important; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="text-gray-800 h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-emerald-600 text-white shadow-md p-4 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-2">
+            <i class="fa-solid fa-seedling text-2xl"></i>
+            <div>
+                <h1 class="text-lg font-bold leading-tight">Kitchen to Green Space</h1>
+                <p class="text-xs opacity-90">คืนชีวิตให้ผักเหลือทิ้ง</p>
+            </div>
+        </div>
+        <button onclick="showQRCode()" class="bg-white text-emerald-600 p-2 rounded-full shadow hover:bg-emerald-50 transition w-10 h-10 flex items-center justify-center">
+            <i class="fa-solid fa-qrcode"></i>
+        </button>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="bg-white shadow-sm flex overflow-x-auto whitespace-nowrap sticky top-[68px] z-40">
+        <button onclick="switchTab('kitchen')" id="tab-kitchen" class="flex-1 py-3 px-4 text-center tab-active transition-all">
+            <i class="fa-solid fa-kitchen-set mr-1"></i> Kitchen
+        </button>
+        <button onclick="switchTab('housekeeping')" id="tab-housekeeping" class="flex-1 py-3 px-4 text-center text-gray-500 transition-all">
+            <i class="fa-solid fa-broom mr-1"></i> HK
+        </button>
+        <button onclick="switchTab('stock')" id="tab-stock" class="flex-1 py-3 px-4 text-center text-gray-500 transition-all">
+            <i class="fa-solid fa-boxes-stacked mr-1"></i> Stock
+        </button>
+        <button onclick="switchTab('settings')" id="tab-settings" class="flex-1 py-3 px-4 text-center text-gray-500 transition-all">
+            <i class="fa-solid fa-gear mr-1"></i> ตั้งค่า
+        </button>
+        <button onclick="switchTab('dashboard')" id="tab-dashboard" class="flex-1 py-3 px-4 text-center text-gray-500 transition-all">
+            <i class="fa-solid fa-chart-pie mr-1"></i> สถิติ
+        </button>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 pb-20">
+
+        <!-- ==================== 1. KITCHEN VIEW ==================== -->
+        <section id="view-kitchen" class="fade-in max-w-md mx-auto">
+            <div class="bg-white rounded-2xl shadow-sm p-5">
+                <h2 class="text-xl font-bold text-emerald-700 mb-4 border-b pb-2">
+                    <i class="fa-solid fa-leaf mr-2"></i> บันทึกส่งมอบเศษวัตถุดิบ
+                </h2>
+                <form id="kitchen-form" onsubmit="submitKitchen(event)">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">แหล่งกำเนิด (Outlet) <span class="text-red-500">*</span></label>
+                        <select id="k-outlet" required onchange="checkOtherOutlet()" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-emerald-500">
+                            <!-- Options populate from JS -->
+                        </select>
+                        <input type="text" id="k-outlet-other" placeholder="ระบุชื่อ Outlet ใหม่..." class="mt-2 w-full border border-gray-300 rounded-lg p-2.5 hidden focus:ring-emerald-500">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ประเภทวัตถุดิบ <span class="text-red-500">*</span></label>
+                        <select id="k-type" required onchange="checkOtherType()" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-emerald-500">
+                            <!-- Options populate from JS -->
+                        </select>
+                        <input type="text" id="k-type-other" placeholder="ระบุชื่อวัตถุดิบใหม่..." class="mt-2 w-full border border-gray-300 rounded-lg p-2.5 hidden focus:ring-emerald-500">
+                    </div>
+
+                    <div class="mb-4 flex gap-3">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ปริมาณ <span class="text-red-500">*</span></label>
+                            <input type="number" id="k-qty" required min="0.1" step="0.1" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-emerald-500">
+                        </div>
+                        <div class="flex-1 flex flex-col justify-end">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">หน่วย <span class="text-red-500">*</span></label>
+                            <select id="k-unit" required onchange="checkOtherUnit()" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-emerald-500">
+                                <!-- Options populate from JS -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-4 -mt-2">
+                        <input type="text" id="k-unit-other" placeholder="ระบุหน่วยใหม่..." class="w-full border border-gray-300 rounded-lg p-2.5 hidden focus:ring-emerald-500">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้ส่งมอบ <span class="text-red-500">*</span></label>
+                        <input type="text" id="k-name" required placeholder="ชื่อพนักงานครัว" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-emerald-500">
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
+                        <textarea id="k-remark" rows="2" placeholder="ข้อมูลเพิ่มเติม..." class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-emerald-500"></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-emerald-700 transition">
+                        บันทึกข้อมูลส่งมอบ
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- ==================== 2. HOUSEKEEPING VIEW ==================== -->
+        <section id="view-housekeeping" class="hidden fade-in max-w-2xl mx-auto">
+            <h2 class="text-xl font-bold text-emerald-700 mb-4 border-b pb-2"><i class="fa-solid fa-broom mr-2"></i> อัปเดตสถานะการปลูก</h2>
+            <div id="hk-list" class="space-y-4"></div>
+        </section>
+
+        <!-- Housekeeping Modal -->
+        <div id="hk-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+            <div class="bg-white rounded-2xl w-full max-w-md p-6 relative">
+                <button onclick="closeHkModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">อัปเดตสถานะการปลูก</h3>
+                
+                <form id="hk-form" onsubmit="submitHousekeeping(event)">
+                    <input type="hidden" id="hk-id">
+                    <div class="mb-4 bg-emerald-50 p-3 rounded-lg text-sm text-emerald-800 border border-emerald-100">
+                        <p><strong>วัตถุดิบ:</strong> <span id="modal-item-name"></span></p>
+                        <p><strong>จาก:</strong> <span id="modal-item-outlet"></span></p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้รับวัตถุดิบ <span class="text-red-500">*</span></label>
+                        <input type="text" id="hk-receiver" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-emerald-500">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">วิธีทดลองปลูก <span class="text-red-500">*</span></label>
+                        <select id="hk-method" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-emerald-500">
+                            <option value="">-- เลือกวิธี --</option>
+                            <option value="แช่น้ำ (Hydroponics)">แช่น้ำ (Hydroponics)</option>
+                            <option value="ลงดิน (Soil)">ลงดิน (Soil)</option>
+                            <option value="วัสดุปลูกอื่น ๆ">วัสดุปลูกอื่น ๆ</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">สถานะ <span class="text-red-500">*</span></label>
+                        <select id="hk-status" required onchange="checkStatusUse()" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-emerald-500">
+                            <option value="อยู่ระหว่างทดลอง">อยู่ระหว่างทดลอง</option>
+                            <option value="ปลูกสำเร็จ">ปลูกสำเร็จ</option>
+                            <option value="นำไปใช้งานแล้ว">นำไปใช้งานแล้ว</option>
+                            <option value="ไม่สำเร็จ">ไม่สำเร็จ</option>
+                        </select>
+                    </div>
+                    
+                    <div id="hk-location-div" class="mb-4 hidden">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">สถานที่นำไปใช้ตกแต่ง</label>
+                        <input type="text" id="hk-location" placeholder="ระบุสถานที่..." class="w-full border border-gray-300 rounded-lg p-2 focus:ring-emerald-500">
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700 transition">
+                        บันทึกอัปเดต
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ==================== 3. STOCK VIEW ==================== -->
+        <section id="view-stock" class="hidden fade-in max-w-4xl mx-auto">
+            <h2 class="text-xl font-bold text-emerald-700 mb-4 border-b pb-2"><i class="fa-solid fa-boxes-stacked mr-2"></i> คลังอุปกรณ์การปลูก</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="md:col-span-1 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="font-bold text-gray-800 mb-3"><i class="fa-solid fa-plus-minus text-blue-500"></i> บันทึกรับ/เบิก อุปกรณ์</h3>
+                    <form id="stock-form" onsubmit="submitStock(event)">
+                        <div class="mb-3">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">ประเภทรายการ</label>
+                            <select id="s-type" required class="w-full border border-gray-300 rounded p-2 text-sm focus:ring-blue-500">
+                                <option value="IN">นำเข้า (นำของเข้าสต็อค)</option>
+                                <option value="OUT">เบิกใช้ (เอาของไปใช้)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">ชื่ออุปกรณ์ (เช่น ดินปลูก, กระถาง)</label>
+                            <input type="text" id="s-item" required class="w-full border border-gray-300 rounded p-2 text-sm focus:ring-blue-500">
+                        </div>
+                        <div class="flex gap-2 mb-3">
+                            <div class="flex-1">
+                                <label class="block text-xs font-medium text-gray-700 mb-1">จำนวน</label>
+                                <input type="number" id="s-qty" required min="1" step="0.1" class="w-full border border-gray-300 rounded p-2 text-sm focus:ring-blue-500">
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-xs font-medium text-gray-700 mb-1">หน่วย</label>
+                                <input type="text" id="s-unit" required placeholder="ถุง, ใบ, kg" class="w-full border border-gray-300 rounded p-2 text-sm focus:ring-blue-500">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">ชื่อผู้ทำรายการ</label>
+                            <input type="text" id="s-user" required class="w-full border border-gray-300 rounded p-2 text-sm focus:ring-blue-500">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">หมายเหตุ</label>
+                            <input type="text" id="s-remark" class="w-full border border-gray-300 rounded p-2 text-sm focus:ring-blue-500">
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 rounded shadow hover:bg-blue-700 text-sm">บันทึกสต็อค</button>
+                    </form>
+                </div>
+
+                <div class="md:col-span-2">
+                    <h3 class="font-bold text-gray-800 mb-3"><i class="fa-solid fa-layer-group text-emerald-500"></i> ยอดคงเหลือปัจจุบัน</h3>
+                    <div id="stock-balance-container" class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6"></div>
+                    
+                    <h3 class="font-bold text-gray-800 mb-3"><i class="fa-solid fa-clock-rotate-left text-gray-500"></i> ประวัติการเคลื่อนไหวล่าสุด</h3>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-gray-50 border-b">
+                                <tr>
+                                    <th class="p-3 text-gray-600">วันที่</th>
+                                    <th class="p-3 text-gray-600">รายการ</th>
+                                    <th class="p-3 text-gray-600">อุปกรณ์</th>
+                                    <th class="p-3 text-gray-600 text-right">จำนวน</th>
+                                    <th class="p-3 text-gray-600">ผู้ทำรายการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stock-history-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 4. DASHBOARD VIEW ==================== -->
+        <section id="view-dashboard" class="hidden fade-in max-w-5xl mx-auto">
+            <h2 class="text-xl font-bold text-emerald-700 mb-4 border-b pb-2"><i class="fa-solid fa-chart-pie mr-2"></i> ข้อมูลเชิงสถิติ</h2>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500">
+                    <p class="text-sm text-gray-500">ส่งมอบทั้งหมด</p>
+                    <p class="text-2xl font-bold text-gray-800" id="stat-total-items">0</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-yellow-500">
+                    <p class="text-sm text-gray-500">กำลังทดลอง</p>
+                    <p class="text-2xl font-bold text-gray-800" id="stat-testing">0</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500">
+                    <p class="text-sm text-gray-500">สำเร็จ / ใช้งานแล้ว</p>
+                    <p class="text-2xl font-bold text-gray-800" id="stat-success">0</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-500">
+                    <p class="text-sm text-gray-500">ไม่สำเร็จ</p>
+                    <p class="text-2xl font-bold text-gray-800" id="stat-failed">0</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white p-4 rounded-xl shadow-sm">
+                    <h3 class="font-bold text-gray-700 mb-4 text-center">สัดส่วนตามแหล่งกำเนิด (Outlet)</h3>
+                    <div class="relative h-64"><canvas id="outletChart"></canvas></div>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm">
+                    <h3 class="font-bold text-gray-700 mb-4 text-center">สถานะการทดลองปลูก</h3>
+                    <div class="relative h-64"><canvas id="statusChart"></canvas></div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-4 overflow-hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-gray-700">ข้อมูลย้อนหลัง</h3>
+                    <input type="text" id="searchTable" onkeyup="filterTable()" placeholder="ค้นหาข้อมูล..." class="border border-gray-300 rounded-lg p-2 text-sm focus:ring-emerald-500">
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-left text-sm" id="dataTable">
+                        <thead class="bg-emerald-50 text-emerald-700 border-b">
+                            <tr>
+                                <th class="px-4 py-3">วันที่ส่งมอบ</th>
+                                <th class="px-4 py-3">วัตถุดิบ</th>
+                                <th class="px-4 py-3">ปริมาณ</th>
+                                <th class="px-4 py-3">Outlet</th>
+                                <th class="px-4 py-3">สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body" class="text-gray-700"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 5. SETTINGS VIEW ==================== -->
+        <section id="view-settings" class="hidden fade-in max-w-5xl mx-auto">
+            <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fa-solid fa-gear mr-2"></i> ตั้งค่ารายการตัวเลือก</h2>
+            <p class="text-sm text-gray-500 mb-4">เพิ่มหรือลบรายการตัวเลือกสำหรับหน้า Kitchen ข้อมูลจะถูกดึงไปแสดงในเมนู Dropdown ทันที (หากเผลอลบค่าพื้นฐานสามารถรีเซ็ตได้)</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Outlet Settings -->
+                <div class="bg-white rounded-2xl shadow-sm p-5 h-fit">
+                    <h3 class="font-bold text-emerald-700 mb-3 border-b pb-2">แหล่งกำเนิด (Outlets)</h3>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="new-outlet" placeholder="เพิ่ม Outlet..." class="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-emerald-500">
+                        <button onclick="addSettingItem('outlets', 'new-outlet')" class="bg-emerald-600 text-white px-3 rounded-lg hover:bg-emerald-700"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <ul id="list-outlets" class="space-y-2 text-sm text-gray-700 max-h-60 overflow-y-auto pr-1"></ul>
+                </div>
+                <!-- Type Settings -->
+                <div class="bg-white rounded-2xl shadow-sm p-5 h-fit">
+                    <h3 class="font-bold text-emerald-700 mb-3 border-b pb-2">ประเภทวัตถุดิบ (Types)</h3>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="new-type" placeholder="เพิ่มวัตถุดิบ..." class="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-emerald-500">
+                        <button onclick="addSettingItem('types', 'new-type')" class="bg-emerald-600 text-white px-3 rounded-lg hover:bg-emerald-700"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <ul id="list-types" class="space-y-2 text-sm text-gray-700 max-h-60 overflow-y-auto pr-1"></ul>
+                </div>
+                <!-- Unit Settings -->
+                <div class="bg-white rounded-2xl shadow-sm p-5 h-fit">
+                    <h3 class="font-bold text-emerald-700 mb-3 border-b pb-2">หน่วยนับ (Units)</h3>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="new-unit" placeholder="เพิ่มหน่วย..." class="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-emerald-500">
+                        <button onclick="addSettingItem('units', 'new-unit')" class="bg-emerald-600 text-white px-3 rounded-lg hover:bg-emerald-700"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <ul id="list-units" class="space-y-2 text-sm text-gray-700 max-h-60 overflow-y-auto pr-1"></ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // --- URL ของ Google Apps Script ---
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz-AFk1UTN73PQUZrwvairfAg7uNS-ucoDJo7NcA7NkJX35_ZkfiuWlrOl0i9GZciOUEA/exec';
+
+        let appData = [];
+        let stockData = [];
+        let chartOutlet = null;
+        let chartStatus = null;
+
+        // --- ระบบตั้งค่า (Settings) เก็บใน LocalStorage ---
+        let customSettings = JSON.parse(localStorage.getItem('k2g_settings')) || { outlets: [], types: [], units: [] };
+
+        // --- ค่าเริ่มต้น (Defaults) อัปเดตตามตารางคัดกรอง ---
+        const defaultOutlets = ['Breakfast', 'Café Jardin', 'The Porch', 'Staff Canteen'];
+        const defaultTypes = ['เมล็ดอะโวคาโด', 'หัวแครอท', 'ผักชีใบเลื่อย', 'โหระพา', 'สะระแหน่', 'หัวสับปะรด', 'มันเทศ', 'ใบหูเสือ'];
+        const defaultUnits = ['ชิ้น', 'หัว', 'เมล็ด', 'กิโลกรัม', 'กรัม'];
+
+        function formatDateTime(dateStr) {
+            if(!dateStr) return '';
+            let d = new Date(dateStr);
+            if(isNaN(d)) d = new Date(dateStr.replace(/-/g, '/')); 
+            if(isNaN(d)) return dateStr; 
+            return d.toLocaleString('th-TH', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' น.';
+        }
+
+        function formatDateOnly(dateStr) {
+            if(!dateStr) return '';
+            let d = new Date(dateStr);
+            if(isNaN(d)) d = new Date(dateStr.replace(/-/g, '/'));
+            if(isNaN(d)) return dateStr.split(' ')[0];
+            return d.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        async function fetchDatabase() {
+            try {
+                Swal.fire({ title: 'กำลังโหลดข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                
+                const response = await fetch(SCRIPT_URL, { method: 'GET', redirect: 'follow' });
+                const result = await response.json();
+                
+                if(result.status === 'success') {
+                    appData = result.data || [];
+                    stockData = result.stock || [];
+                    
+                    populateDropdowns();
+                    updateDashboard(); 
+                    renderHousekeepingList(); 
+                    renderStockView(); 
+                    Swal.close();
+                }
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error');
+            }
+        }
+
+        function switchTab(tabId) {
+            ['kitchen', 'housekeeping', 'stock', 'dashboard', 'settings'].forEach(tab => {
+                document.getElementById(`view-${tab}`).classList.add('hidden');
+                const el = document.getElementById(`tab-${tab}`);
+                if(el) {
+                    el.classList.remove('tab-active', 'text-gray-500');
+                    el.classList.add('text-gray-500');
+                }
+            });
+
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+            const activeTab = document.getElementById(`tab-${tabId}`);
+            if(activeTab) {
+                activeTab.classList.remove('text-gray-500');
+                activeTab.classList.add('tab-active');
+            }
+
+            if(tabId === 'housekeeping') renderHousekeepingList();
+            else if (tabId === 'dashboard') updateDashboard();
+            else if (tabId === 'stock') renderStockView();
+            else if (tabId === 'settings') renderSettingsLists();
+        }
+
+        function populateDropdowns() {
+            const allOutlets = [...new Set([...defaultOutlets, ...customSettings.outlets])];
+            const allTypes = [...new Set([...defaultTypes, ...customSettings.types])];
+            const allUnits = [...new Set([...defaultUnits, ...customSettings.units])];
+
+            const outletSelect = document.getElementById('k-outlet');
+            let outletHTML = '<option value="">-- เลือก Outlet --</option>';
+            allOutlets.forEach(opt => outletHTML += `<option value="${opt}">${opt}</option>`);
+            outletHTML += '<option value="other">อื่น ๆ (ระบุเอง)</option>';
+            outletSelect.innerHTML = outletHTML;
+
+            const typeSelect = document.getElementById('k-type');
+            let typeHTML = `<option value="">-- เลือกวัตถุดิบ --</option>`;
+            allTypes.forEach(opt => typeHTML += `<option value="${opt}">${opt}</option>`);
+            typeHTML += '<option value="other">อื่น ๆ (ระบุเอง)</option>';
+            typeSelect.innerHTML = typeHTML;
+
+            const unitSelect = document.getElementById('k-unit');
+            let unitHTML = '';
+            allUnits.forEach(opt => unitHTML += `<option value="${opt}">${opt}</option>`);
+            unitHTML += '<option value="other">อื่น ๆ (ระบุเอง)</option>';
+            unitSelect.innerHTML = unitHTML;
+        }
+
+        // --- Settings Logic ---
+        function saveSettings() {
+            localStorage.setItem('k2g_settings', JSON.stringify(customSettings));
+            populateDropdowns();
+            renderSettingsLists();
+        }
+
+        function addSettingItem(category, inputId) {
+            const input = document.getElementById(inputId);
+            const val = input.value.trim();
+            const defArray = category === 'outlets' ? defaultOutlets : (category === 'types' ? defaultTypes : defaultUnits);
+            
+            if(val && !customSettings[category].includes(val) && !defArray.includes(val)) {
+                customSettings[category].push(val);
+                input.value = '';
+                saveSettings();
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'เพิ่มรายการสำเร็จ', showConfirmButton: false, timer: 1500 });
+            } else if (val) {
+                Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'มีรายการนี้อยู่แล้ว', showConfirmButton: false, timer: 1500 });
+            }
+        }
+
+        function deleteSettingItem(category, val) {
+            customSettings[category] = customSettings[category].filter(item => item !== val);
+            saveSettings();
+        }
+
+        function renderSettingsLists() {
+            ['outlets', 'types', 'units'].forEach(category => {
+                const ul = document.getElementById(`list-${category}`);
+                if(ul) {
+                    ul.innerHTML = '';
+                    const defArray = category === 'outlets' ? defaultOutlets : (category === 'types' ? defaultTypes : defaultUnits);
+                    defArray.forEach(item => {
+                        ul.innerHTML += `<li class="flex justify-between items-center bg-gray-50 p-2 rounded border border-gray-100 mb-1">
+                            <span class="text-gray-500">${item} <span class="text-[10px] bg-gray-200 text-gray-600 px-1 rounded ml-1">ค่าพื้นฐาน</span></span>
+                        </li>`;
+                    });
+                    customSettings[category].forEach(item => {
+                        ul.innerHTML += `<li class="flex justify-between items-center bg-white p-2 rounded border border-emerald-200 shadow-sm mb-1">
+                            <span class="text-emerald-700 font-medium">${item}</span>
+                            <button onclick="deleteSettingItem('${category}', '${item}')" class="text-red-500 hover:text-red-700 p-1"><i class="fa-solid fa-trash-can"></i></button>
+                        </li>`;
+                    });
+                }
+            });
+        }
+
+        // --- Kitchen Logic ---
+        function checkOtherOutlet() { document.getElementById('k-outlet-other').classList.toggle('hidden', document.getElementById('k-outlet').value !== 'other'); }
+        function checkOtherType() { document.getElementById('k-type-other').classList.toggle('hidden', document.getElementById('k-type').value !== 'other'); }
+        function checkOtherUnit() { document.getElementById('k-unit-other').classList.toggle('hidden', document.getElementById('k-unit').value !== 'other'); }
+
+        function submitKitchen(e) {
+            e.preventDefault();
+            
+            let outlet = document.getElementById('k-outlet').value;
+            if(outlet === 'other') outlet = document.getElementById('k-outlet-other').value;
+
+            let type = document.getElementById('k-type').value;
+            if(type === 'other') type = document.getElementById('k-type-other').value;
+
+            let unit = document.getElementById('k-unit').value;
+            if(unit === 'other') unit = document.getElementById('k-unit-other').value;
+
+            Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            const payload = {
+                action: 'insert_kitchen',
+                outlet: outlet, type: type,
+                qty: document.getElementById('k-qty').value,
+                unit: unit,
+                k_name: document.getElementById('k-name').value,
+                remark: document.getElementById('k-remark').value
+            };
+
+            fetch(SCRIPT_URL, {
+                method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    Swal.fire({ title: 'บันทึกสำเร็จ!', text: 'ส่งข้อมูลให้แผนก Housekeeping แล้ว', icon: 'success' }).then(() => {
+                        document.getElementById('kitchen-form').reset();
+                        document.getElementById('k-outlet-other').classList.add('hidden');
+                        document.getElementById('k-type-other').classList.add('hidden');
+                        document.getElementById('k-unit-other').classList.add('hidden');
+                        fetchDatabase(); 
+                    });
+                }
+            }).catch(err => Swal.fire('ข้อผิดพลาด', 'บันทึกข้อมูลไม่สำเร็จ', 'error'));
+        }
+
+        // --- Housekeeping Logic ---
+        function renderHousekeepingList() {
+            const listDiv = document.getElementById('hk-list');
+            listDiv.innerHTML = '';
+            
+            const sortedData = [...appData].reverse();
+            sortedData.forEach(item => {
+                let statusColor = "bg-gray-100 text-gray-600";
+                if(item.status === 'ปลูกสำเร็จ') statusColor = "bg-green-100 text-green-700";
+                if(item.status === 'ไม่สำเร็จ') statusColor = "bg-red-100 text-red-700";
+                if(item.status === 'อยู่ระหว่างทดลอง') statusColor = "bg-blue-100 text-blue-700";
+                if(item.status === 'นำไปใช้งานแล้ว') statusColor = "bg-emerald-100 text-emerald-700";
+                if(item.status === 'รอรับ/ยังไม่อัปเดต') statusColor = "bg-orange-100 text-orange-700";
+
+                listDiv.innerHTML += `
+                    <div class="border border-gray-200 rounded-xl p-4 shadow-sm bg-white">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h4 class="font-bold text-gray-800">${item.type} <span class="text-sm font-normal text-gray-500">(${item.qty} ${item.unit})</span></h4>
+                                <p class="text-xs text-gray-500"><i class="fa-regular fa-clock"></i> ${formatDateTime(item.date)}</p>
+                                <p class="text-xs text-gray-500"><i class="fa-solid fa-utensils"></i> จาก: ${item.outlet}</p>
+                            </div>
+                            <span class="text-[10px] font-bold px-2 py-1 rounded-full ${statusColor}">${item.status}</span>
+                        </div>
+                        <div class="mt-3 flex justify-end">
+                            <button onclick="openHkModal(${item.id})" class="text-sm bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1.5 rounded shadow-sm hover:bg-blue-100 transition">
+                                <i class="fa-solid fa-pen-to-square"></i> อัปเดตสถานะ
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function openHkModal(id) {
+            const item = appData.find(d => d.id === id);
+            if(!item) return;
+
+            document.getElementById('hk-id').value = item.id;
+            document.getElementById('modal-item-name').textContent = `${item.type} (${item.qty} ${item.unit})`;
+            document.getElementById('modal-item-outlet').textContent = item.outlet;
+            
+            document.getElementById('hk-receiver').value = item.receiver || '';
+            document.getElementById('hk-method').value = item.method || '';
+            document.getElementById('hk-status').value = (item.status !== 'รอรับ/ยังไม่อัปเดต') ? item.status : 'อยู่ระหว่างทดลอง';
+            document.getElementById('hk-location').value = item.location || '';
+            
+            checkStatusUse();
+            document.getElementById('hk-modal').classList.remove('hidden');
+        }
+
+        function closeHkModal() { document.getElementById('hk-modal').classList.add('hidden'); }
+        function checkStatusUse() { document.getElementById('hk-location-div').classList.toggle('hidden', document.getElementById('hk-status').value !== 'นำไปใช้งานแล้ว'); }
+
+        function submitHousekeeping(e) {
+            e.preventDefault();
+            Swal.fire({ title: 'กำลังอัปเดต...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            const payload = {
+                action: 'update_housekeeping',
+                id: document.getElementById('hk-id').value,
+                receiver: document.getElementById('hk-receiver').value,
+                method: document.getElementById('hk-method').value,
+                status: document.getElementById('hk-status').value,
+                location: document.getElementById('hk-status').value === 'นำไปใช้งานแล้ว' ? document.getElementById('hk-location').value : ''
+            };
+
+            fetch(SCRIPT_URL, {
+                method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            }).then(res => res.json()).then(data => {
+                if(data.status === 'success') {
+                    closeHkModal();
+                    fetchDatabase(); 
+                    Swal.fire({ title: 'อัปเดตสำเร็จ!', icon: 'success', toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
+                }
+            }).catch(err => Swal.fire('ข้อผิดพลาด', 'อัปเดตข้อมูลไม่สำเร็จ', 'error'));
+        }
+
+        // --- Stock Logic ---
+        function submitStock(e) {
+            e.preventDefault();
+            Swal.fire({ title: 'กำลังบันทึกสต็อค...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            const payload = {
+                action: 'insert_stock',
+                transaction_type: document.getElementById('s-type').value,
+                item_name: document.getElementById('s-item').value,
+                qty: parseFloat(document.getElementById('s-qty').value),
+                unit: document.getElementById('s-unit').value,
+                user: document.getElementById('s-user').value,
+                remark: document.getElementById('s-remark').value
+            };
+
+            fetch(SCRIPT_URL, {
+                method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            }).then(res => res.json()).then(data => {
+                if(data.status === 'success') {
+                    Swal.fire({ title: 'บันทึกสำเร็จ!', icon: 'success', toast: true, position: 'top-end', timer: 1500, showConfirmButton: false }).then(() => {
+                        document.getElementById('stock-form').reset();
+                        fetchDatabase();
+                    });
+                }
+            }).catch(err => Swal.fire('ข้อผิดพลาด', 'บันทึกสต็อคไม่สำเร็จ', 'error'));
+        }
+
+        function renderStockView() {
+            const balances = {};
+            stockData.forEach(item => {
+                const nameKey = `${item.item_name} (${item.unit})`;
+                if (!balances[nameKey]) balances[nameKey] = 0;
+                if (item.transaction_type === 'IN') balances[nameKey] += parseFloat(item.qty);
+                else if (item.transaction_type === 'OUT') balances[nameKey] -= parseFloat(item.qty);
+            });
+
+            const balContainer = document.getElementById('stock-balance-container');
+            balContainer.innerHTML = '';
+            
+            if (Object.keys(balances).length === 0) {
+                balContainer.innerHTML = '<p class="text-sm text-gray-500 col-span-full">ยังไม่มีข้อมูลอุปกรณ์ในคลัง</p>';
+            } else {
+                for (const [name, qty] of Object.entries(balances)) {
+                    const isLow = qty <= 0;
+                    balContainer.innerHTML += `
+                        <div class="border rounded-xl p-3 shadow-sm ${isLow ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'}">
+                            <p class="text-xs text-gray-600 mb-1 truncate" title="${name}">${name}</p>
+                            <p class="text-xl font-bold ${isLow ? 'text-red-600' : 'text-emerald-700'}">${qty}</p>
+                        </div>
+                    `;
+                }
+            }
+
+            const tbody = document.getElementById('stock-history-body');
+            tbody.innerHTML = '';
+            [...stockData].reverse().forEach(d => {
+                const isIN = d.transaction_type === 'IN';
+                tbody.innerHTML += `
+                    <tr class="bg-white border-b hover:bg-gray-50">
+                        <td class="px-3 py-2 whitespace-nowrap text-xs">${formatDateOnly(d.date)}</td>
+                        <td class="px-3 py-2 font-bold ${isIN ? 'text-emerald-600' : 'text-orange-500'}">${isIN ? 'นำเข้า' : 'เบิกใช้'}</td>
+                        <td class="px-3 py-2">${d.item_name}</td>
+                        <td class="px-3 py-2 text-right">${d.qty} ${d.unit}</td>
+                        <td class="px-3 py-2 text-xs">${d.user}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // --- Dashboard Logic ---
+        function updateDashboard() {
+            const total = appData.length;
+            const testing = appData.filter(d => d.status === 'อยู่ระหว่างทดลอง' || d.status === 'รอรับ/ยังไม่อัปเดต').length;
+            const success = appData.filter(d => d.status === 'ปลูกสำเร็จ' || d.status === 'นำไปใช้งานแล้ว').length;
+            const failed = appData.filter(d => d.status === 'ไม่สำเร็จ').length;
+
+            document.getElementById('stat-total-items').textContent = total;
+            document.getElementById('stat-testing').textContent = testing;
+            document.getElementById('stat-success').textContent = success;
+            document.getElementById('stat-failed').textContent = failed;
+
+            const outletCounts = {};
+            const statusCounts = {};
+            appData.forEach(d => {
+                outletCounts[d.outlet] = (outletCounts[d.outlet] || 0) + 1;
+                statusCounts[d.status] = (statusCounts[d.status] || 0) + 1;
+            });
+
+            drawOutletChart(Object.keys(outletCounts), Object.values(outletCounts));
+            drawStatusChart(Object.keys(statusCounts), Object.values(statusCounts));
+            renderTable();
+        }
+
+        function drawOutletChart(labels, data) {
+            const ctx = document.getElementById('outletChart').getContext('2d');
+            if(chartOutlet) chartOutlet.destroy();
+            chartOutlet = new Chart(ctx, {
+                type: 'doughnut', data: { labels: labels, datasets: [{ data: data, backgroundColor: ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'], borderWidth: 1 }] },
+                options: { maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12 } } } }
+            });
+        }
+
+        function drawStatusChart(labels, data) {
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            if(chartStatus) chartStatus.destroy();
+            chartStatus = new Chart(ctx, {
+                type: 'bar', data: { labels: labels, datasets: [{ label: 'จำนวนรายการ', data: data, backgroundColor: '#3b82f6', borderRadius: 4 }] },
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+            });
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+            [...appData].reverse().forEach(d => {
+                tbody.innerHTML += `
+                    <tr class="bg-white border-b hover:bg-gray-50">
+                        <td class="px-4 py-2 whitespace-nowrap">${formatDateOnly(d.date)}</td>
+                        <td class="px-4 py-2 font-medium text-gray-900">${d.type}</td>
+                        <td class="px-4 py-2">${d.qty} ${d.unit}</td>
+                        <td class="px-4 py-2">${d.outlet}</td>
+                        <td class="px-4 py-2">${d.status}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function filterTable() {
+            const input = document.getElementById("searchTable");
+            const filter = input.value.toUpperCase();
+            const tr = document.getElementById("dataTable").getElementsByTagName("tr");
+
+            for (let i = 1; i < tr.length; i++) {
+                let visible = false;
+                const tds = tr[i].getElementsByTagName("td");
+                for (let j = 0; j < tds.length; j++) {
+                    if (tds[j] && tds[j].innerHTML.toUpperCase().indexOf(filter) > -1) {
+                        visible = true;
+                        break;
+                    }
+                }
+                tr[i].style.display = visible ? "" : "none";
+            }
+        }
+
+        function showQRCode() {
+            Swal.fire({ title: 'Scan เพื่อใช้งาน', text: 'นำ QR Code นี้ไปติดที่จุดพักขยะ (Scrap Station)', imageUrl: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${window.location.href}`, imageWidth: 200, imageHeight: 200, confirmButtonText: 'ปิด', confirmButtonColor: '#10b981' });
+        }
+        
+        document.addEventListener("DOMContentLoaded", fetchDatabase);
+
+    </script>
+</body>
+</html>
