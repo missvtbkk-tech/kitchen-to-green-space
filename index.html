@@ -99,6 +99,15 @@
                         <input type="text" id="k-name" required placeholder="ชื่อพนักงานครัว" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-emerald-500">
                     </div>
 
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ภาพถ่ายวัตถุดิบ <i class="fa-solid fa-camera"></i></label>
+                        <input type="file" id="k-photo" accept="image/*" capture="environment" onchange="compressImage(event)" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-emerald-500 text-sm bg-white">
+                        <div id="photo-preview-container" class="hidden mt-2 text-center">
+                            <img id="photo-preview" class="max-h-48 rounded-lg border border-gray-300 mx-auto shadow-sm" src="" alt="Preview">
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">ขนาดไฟล์จะถูกลดอัตโนมัติ (ถ่ายรูปหรือเลือกจากอัลบั้มได้)</p>
+                    </div>
+
                     <div class="mb-6">
                         <label class="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
                         <textarea id="k-remark" rows="2" placeholder="ข้อมูลเพิ่มเติม..." class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-emerald-500"></textarea>
@@ -342,6 +351,49 @@
         const defaultTypes = ['เมล็ดอะโวคาโด', 'หัวแครอท', 'ผักชีใบเลื่อย', 'โหระพา', 'สะระแหน่', 'หัวสับปะรด', 'มันเทศ', 'ใบหูเสือ'];
         const defaultUnits = ['ชิ้น', 'หัว', 'เมล็ด', 'กิโลกรัม', 'กรัม'];
 
+        let currentPhotoBase64 = "";
+
+        // ฟังก์ชันบีบอัดขนาดรูปภาพก่อนส่ง
+        function compressImage(e) {
+            const file = e.target.files[0];
+            if (!file) {
+                currentPhotoBase64 = "";
+                document.getElementById('photo-preview-container').classList.add('hidden');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800; // กำหนดความกว้างสูงสุด
+                    const MAX_HEIGHT = 800; // กำหนดความสูงสูงสุด
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                    } else {
+                        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // แปลงเป็น Base64 และบีบอัดคุณภาพเหลือ 60%
+                    currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.6); 
+                    
+                    document.getElementById('photo-preview-container').classList.remove('hidden');
+                    document.getElementById('photo-preview').src = currentPhotoBase64;
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
         function formatDateTime(dateStr) {
             if(!dateStr) return '';
             let d = new Date(dateStr);
@@ -493,7 +545,7 @@
             let unit = document.getElementById('k-unit').value;
             if(unit === 'other') unit = document.getElementById('k-unit-other').value;
 
-            Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            Swal.fire({ title: 'กำลังบันทึกข้อมูล...', text: 'อาจใช้เวลาสักครู่หากมีการแนบรูปภาพ', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
             const payload = {
                 action: 'insert_kitchen',
@@ -501,7 +553,8 @@
                 qty: document.getElementById('k-qty').value,
                 unit: unit,
                 k_name: document.getElementById('k-name').value,
-                remark: document.getElementById('k-remark').value
+                remark: document.getElementById('k-remark').value,
+                photo: currentPhotoBase64 // ส่งข้อมูลรูปภาพ
             };
 
             fetch(SCRIPT_URL, {
@@ -516,6 +569,12 @@
                         document.getElementById('k-outlet-other').classList.add('hidden');
                         document.getElementById('k-type-other').classList.add('hidden');
                         document.getElementById('k-unit-other').classList.add('hidden');
+                        
+                        // รีเซ็ตการแสดงผลรูปภาพ
+                        currentPhotoBase64 = "";
+                        document.getElementById('photo-preview-container').classList.add('hidden');
+                        document.getElementById('photo-preview').src = "";
+                        
                         fetchDatabase(); 
                     });
                 }
@@ -536,6 +595,8 @@
                 if(item.status === 'นำไปใช้งานแล้ว') statusColor = "bg-emerald-100 text-emerald-700";
                 if(item.status === 'รอรับ/ยังไม่อัปเดต') statusColor = "bg-orange-100 text-orange-700";
 
+                let photoHTML = item.photo_url ? `<a href="${item.photo_url}" target="_blank" class="text-blue-500 hover:underline text-xs mt-1 block"><i class="fa-solid fa-image"></i> ดูภาพวัตถุดิบ</a>` : '';
+
                 listDiv.innerHTML += `
                     <div class="border border-gray-200 rounded-xl p-4 shadow-sm bg-white">
                         <div class="flex justify-between items-start mb-2">
@@ -543,6 +604,7 @@
                                 <h4 class="font-bold text-gray-800">${item.type} <span class="text-sm font-normal text-gray-500">(${item.qty} ${item.unit})</span></h4>
                                 <p class="text-xs text-gray-500"><i class="fa-regular fa-clock"></i> ${formatDateTime(item.date)}</p>
                                 <p class="text-xs text-gray-500"><i class="fa-solid fa-utensils"></i> จาก: ${item.outlet}</p>
+                                ${photoHTML}
                             </div>
                             <span class="text-[10px] font-bold px-2 py-1 rounded-full ${statusColor}">${item.status}</span>
                         </div>
@@ -723,7 +785,10 @@
                         <td class="px-4 py-2 font-medium text-gray-900">${d.type}</td>
                         <td class="px-4 py-2">${d.qty} ${d.unit}</td>
                         <td class="px-4 py-2">${d.outlet}</td>
-                        <td class="px-4 py-2">${d.status}</td>
+                        <td class="px-4 py-2">
+                            ${d.status}
+                            ${d.photo_url ? `<br><a href="${d.photo_url}" target="_blank" class="text-blue-500 hover:underline text-[10px]"><i class="fa-solid fa-image"></i> รูปภาพ</a>` : ''}
+                        </td>
                     </tr>
                 `;
             });
