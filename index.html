@@ -143,6 +143,17 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้รับวัตถุดิบ <span class="text-red-500">*</span></label>
                         <input type="text" id="hk-receiver" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-emerald-500">
                     </div>
+
+                    <!-- เพิ่มส่วนแบ่งจำนวน -->
+                    <div class="mb-3 flex gap-3">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">จำนวนที่จัดการ <span class="text-red-500">*</span></label>
+                            <input type="number" id="hk-qty-update" required min="0.1" step="0.1" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-emerald-500 text-center font-bold text-emerald-700 bg-emerald-50">
+                        </div>
+                        <div class="flex-[1.5] flex flex-col justify-center pt-5">
+                            <span id="hk-qty-max-label" class="text-sm text-gray-600 font-medium"></span>
+                        </div>
+                    </div>
                     
                     <div class="mb-3">
                         <label class="block text-sm font-medium text-gray-700 mb-1">วิธีทดลองปลูก <span class="text-red-500">*</span></label>
@@ -172,6 +183,7 @@
                     <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700 transition">
                         บันทึกอัปเดต
                     </button>
+                    <p class="text-xs text-center text-gray-400 mt-2">* หากแบ่งจำนวน ระบบจะสร้างรายการที่เหลือแยกไว้ให้อัตโนมัติ</p>
                 </form>
             </div>
         </div>
@@ -457,9 +469,14 @@
         }
 
         function populateDropdowns() {
-            const allOutlets = [...new Set([...defaultOutlets, ...customSettings.outlets])];
-            const allTypes = [...new Set([...defaultTypes, ...customSettings.types])];
-            const allUnits = [...new Set([...defaultUnits, ...customSettings.units])];
+            // ดึงข้อมูลจากประวัติในฐานข้อมูลด้วย
+            const dbOutlets = [...new Set(appData.map(item => item.outlet).filter(Boolean))];
+            const dbTypes = [...new Set(appData.map(item => item.type).filter(Boolean))];
+            const dbUnits = [...new Set(appData.map(item => item.unit).filter(Boolean))];
+
+            const allOutlets = [...new Set([...defaultOutlets, ...customSettings.outlets, ...dbOutlets])];
+            const allTypes = [...new Set([...defaultTypes, ...customSettings.types, ...dbTypes])];
+            const allUnits = [...new Set([...defaultUnits, ...customSettings.units, ...dbUnits])];
 
             const outletSelect = document.getElementById('k-outlet');
             let outletHTML = '<option value="">-- เลือก Outlet --</option>';
@@ -554,7 +571,7 @@
                 unit: unit,
                 k_name: document.getElementById('k-name').value,
                 remark: document.getElementById('k-remark').value,
-                photo: currentPhotoBase64 // ส่งข้อมูลรูปภาพ
+                photo: currentPhotoBase64
             };
 
             fetch(SCRIPT_URL, {
@@ -570,7 +587,6 @@
                         document.getElementById('k-type-other').classList.add('hidden');
                         document.getElementById('k-unit-other').classList.add('hidden');
                         
-                        // รีเซ็ตการแสดงผลรูปภาพ
                         currentPhotoBase64 = "";
                         document.getElementById('photo-preview-container').classList.add('hidden');
                         document.getElementById('photo-preview').src = "";
@@ -597,18 +613,42 @@
 
                 let photoHTML = '';
                 if (item.photo_url && !item.photo_url.includes("Error")) {
-                    // แปลง URL ให้เป็นรูปแบบ Thumbnail เพื่อนำมาแสดงเป็นรูปภาพ
                     const match = item.photo_url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                    const imgSrc = match ? `https://drive.google.com/thumbnail?id=${match[1]}&sz=w300` : item.photo_url;
+                    const imgSrc = match ? `https://drive.google.com/uc?export=view&id=${match[1]}` : item.photo_url;
                     photoHTML = `
                         <div class="mt-2">
                             <a href="${item.photo_url}" target="_blank" class="inline-block">
-                                <img src="${imgSrc}" alt="Photo" class="h-20 w-20 object-cover rounded-lg border border-gray-200 shadow-sm hover:opacity-80 transition" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                                <span class="hidden text-blue-500 hover:underline text-xs mt-1"><i class="fa-solid fa-image"></i> ดูภาพวัตถุดิบ</span>
+                                <img src="${imgSrc}" alt="Photo" referrerpolicy="no-referrer" class="h-20 w-20 object-cover rounded-lg border border-gray-200 shadow-sm hover:opacity-80 transition" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <span class="hidden text-blue-500 hover:underline text-xs mt-1"><i class="fa-solid fa-image"></i> คลิกเพื่อดูรูปภาพ</span>
                             </a>
                         </div>`;
                 } else if (item.photo_url && item.photo_url.includes("Error")) {
                     photoHTML = `<span class="text-red-400 text-xs mt-1 block"><i class="fa-solid fa-triangle-exclamation"></i> บันทึกภาพไม่สำเร็จ</span>`;
+                }
+
+                // แสดงข้อมูลวิธีการปลูก (ถ้าเคยอัปเดตแล้ว)
+                let methodInfoHTML = item.method 
+                    ? `<p class="text-xs text-gray-500 mt-1"><i class="fa-solid fa-flask text-purple-500"></i> วิธีปลูก: <span class="font-medium text-gray-700">${item.method}</span></p>` 
+                    : '';
+
+                // ตรวจสอบว่าสถานะสิ้นสุดกระบวนการแล้วหรือยัง (เพื่อล็อคปุ่ม)
+                const terminalStatuses = ['ปลูกสำเร็จ', 'นำไปใช้งานแล้ว', 'ไม่สำเร็จ'];
+                let actionButtonHTML = '';
+                
+                if (terminalStatuses.includes(item.status)) {
+                    // ล็อคปุ่มสำหรับสถานะที่สิ้นสุดแล้ว
+                    actionButtonHTML = `
+                        <button disabled class="text-sm bg-gray-100 text-gray-400 border border-gray-200 px-3 py-1.5 rounded shadow-sm cursor-not-allowed">
+                            <i class="fa-solid fa-lock"></i> ปิดรายการ
+                        </button>
+                    `;
+                } else {
+                    // ปุ่มอัปเดตปกติสำหรับสถานะที่ยังดำเนินการอยู่
+                    actionButtonHTML = `
+                        <button onclick="openHkModal(${item.id})" class="text-sm bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1.5 rounded shadow-sm hover:bg-blue-100 transition">
+                            <i class="fa-solid fa-pen-to-square"></i> อัปเดตสถานะ
+                        </button>
+                    `;
                 }
 
                 listDiv.innerHTML += `
@@ -618,14 +658,13 @@
                                 <h4 class="font-bold text-gray-800">${item.type} <span class="text-sm font-normal text-gray-500">(${item.qty} ${item.unit})</span></h4>
                                 <p class="text-xs text-gray-500"><i class="fa-regular fa-clock"></i> ${formatDateTime(item.date)}</p>
                                 <p class="text-xs text-gray-500"><i class="fa-solid fa-utensils"></i> จาก: ${item.outlet}</p>
+                                ${methodInfoHTML}
                                 ${photoHTML}
                             </div>
-                            <span class="text-[10px] font-bold px-2 py-1 rounded-full ${statusColor}">${item.status}</span>
+                            <span class="text-[10px] font-bold px-2 py-1 rounded-full ${statusColor} text-center max-w-[80px]">${item.status}</span>
                         </div>
                         <div class="mt-3 flex justify-end">
-                            <button onclick="openHkModal(${item.id})" class="text-sm bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1.5 rounded shadow-sm hover:bg-blue-100 transition">
-                                <i class="fa-solid fa-pen-to-square"></i> อัปเดตสถานะ
-                            </button>
+                            ${actionButtonHTML}
                         </div>
                     </div>
                 `;
@@ -637,11 +676,41 @@
             if(!item) return;
 
             document.getElementById('hk-id').value = item.id;
-            document.getElementById('modal-item-name').textContent = `${item.type} (${item.qty} ${item.unit})`;
+            document.getElementById('modal-item-name').textContent = `${item.type}`;
             document.getElementById('modal-item-outlet').textContent = item.outlet;
             
-            document.getElementById('hk-receiver').value = item.receiver || '';
-            document.getElementById('hk-method').value = item.method || '';
+            // ตั้งค่าจำนวนเริ่มต้น และ จำนวนสูงสุดที่แบ่งได้
+            const qtyInput = document.getElementById('hk-qty-update');
+            qtyInput.value = item.qty;
+            qtyInput.max = item.qty;
+            document.getElementById('hk-qty-max-label').textContent = `จากทั้งหมด ${item.qty} ${item.unit}`;
+
+            // 1. ดึงข้อมูลเดิมจากฐานข้อมูล (ของรายการนี้โดยเฉพาะ)
+            const existingReceiver = item.receiver ? item.receiver.toString().trim() : '';
+            const existingMethod = item.method ? item.method.toString().trim() : '';
+
+            // 2. ดึงข้อมูลที่เคยเลือกล่าสุดจาก LocalStorage (เผื่อเป็นรายการใหม่ที่ยังว่างอยู่)
+            const lastReceiver = localStorage.getItem('k2g_last_hk_receiver') || '';
+            const lastMethod = localStorage.getItem('k2g_last_hk_method') || '';
+
+            // ให้ความสำคัญกับข้อมูลของรายการนี้ก่อน ถ้าไม่มีค่อยใช้ค่าที่จำไว้
+            document.getElementById('hk-receiver').value = existingReceiver || lastReceiver;
+            
+            // จัดการ Dropdown "วิธีปลูก"
+            const methodSelect = document.getElementById('hk-method');
+            const targetMethod = existingMethod || lastMethod;
+            
+            if (targetMethod) {
+                // เช็คว่าใน Dropdown มีตัวเลือกนี้หรือยัง (ป้องกันชื่อเดิมพิมพ์ไม่ตรงเป๊ะ)
+                let optionExists = Array.from(methodSelect.options).some(opt => opt.value === targetMethod);
+                if (!optionExists) {
+                    methodSelect.add(new Option(targetMethod, targetMethod)); // สร้างตัวเลือกชั่วคราว
+                }
+                methodSelect.value = targetMethod;
+            } else {
+                methodSelect.value = "";
+            }
+
             document.getElementById('hk-status').value = (item.status !== 'รอรับ/ยังไม่อัปเดต') ? item.status : 'อยู่ระหว่างทดลอง';
             document.getElementById('hk-location').value = item.location || '';
             
@@ -654,15 +723,25 @@
 
         function submitHousekeeping(e) {
             e.preventDefault();
-            Swal.fire({ title: 'กำลังอัปเดต...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            Swal.fire({ title: 'กำลังอัปเดต...', text: 'หากมีการแบ่งจำนวน ระบบกำลังแยกรายการให้ครับ', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            // ดึงค่าผู้รับและวิธีปลูก
+            const receiverVal = document.getElementById('hk-receiver').value;
+            const methodVal = document.getElementById('hk-method').value;
+            const updateQtyVal = parseFloat(document.getElementById('hk-qty-update').value);
+
+            // บันทึกค่าล่าสุดลง LocalStorage เพื่อให้ดึงไปใช้ครั้งต่อไปกับรายการใหม่ๆ
+            localStorage.setItem('k2g_last_hk_receiver', receiverVal);
+            localStorage.setItem('k2g_last_hk_method', methodVal);
 
             const payload = {
                 action: 'update_housekeeping',
                 id: document.getElementById('hk-id').value,
-                receiver: document.getElementById('hk-receiver').value,
-                method: document.getElementById('hk-method').value,
+                receiver: receiverVal,
+                method: methodVal,
                 status: document.getElementById('hk-status').value,
-                location: document.getElementById('hk-status').value === 'นำไปใช้งานแล้ว' ? document.getElementById('hk-location').value : ''
+                location: document.getElementById('hk-status').value === 'นำไปใช้งานแล้ว' ? document.getElementById('hk-location').value : '',
+                qty_update: updateQtyVal // ส่งจำนวนกลับไปด้วยเผื่อมีกรณีแบ่งแถว
             };
 
             fetch(SCRIPT_URL, {
@@ -797,12 +876,12 @@
                 let photoHTML = '';
                 if (d.photo_url && !d.photo_url.includes("Error")) {
                     const match = d.photo_url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                    const imgSrc = match ? `https://drive.google.com/thumbnail?id=${match[1]}&sz=w200` : d.photo_url;
+                    const imgSrc = match ? `https://drive.google.com/uc?export=view&id=${match[1]}` : d.photo_url;
                     photoHTML = `
                         <div class="mt-1">
                             <a href="${d.photo_url}" target="_blank">
-                                <img src="${imgSrc}" alt="Photo" class="h-12 w-12 object-cover rounded border border-gray-200 hover:opacity-80 transition" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
-                                <span class="hidden text-blue-500 hover:underline text-[10px]"><i class="fa-solid fa-image"></i> รูปภาพ</span>
+                                <img src="${imgSrc}" alt="Photo" referrerpolicy="no-referrer" class="h-12 w-12 object-cover rounded border border-gray-200 hover:opacity-80 transition" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                                <span class="hidden text-blue-500 hover:underline text-[10px]"><i class="fa-solid fa-image"></i> คลิกดูรูป</span>
                             </a>
                         </div>`;
                 }
